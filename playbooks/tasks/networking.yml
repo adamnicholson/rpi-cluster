@@ -1,0 +1,29 @@
+---
+- name: Setup host networking
+  hosts: newnodes
+  tasks:
+    - name: 'Replace dhcpcd.conf file with static IP settings'
+      become: true
+      register: dhcpcd
+      copy:
+        dest: /etc/dhcpcd.conf
+        content: |
+          hostname
+          clientid
+          persistent
+          option rapid_commit
+          option domain_name_servers, domain_name, domain_search, host_name
+          option classless_static_routes
+          option interface_mtu
+          require dhcp_server_identifier
+          slaac private
+          arping 192.168.0.1
+          profile 192.168.0.1
+          interface eth0
+          static ip_address={{target_ip}}/24
+          static routers=192.168.0.1
+
+    - name: 'Reboot if network updated'
+      become: true
+      when: dhcpcd.changed
+      command: shutdown -r +1
